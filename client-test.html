@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sensei WebSocket Tester</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>body { font-family: monospace; padding: 20px; }</style>
+</head>
+<body>
+    <h2>🔮 SyncBoard Telepathy Test</h2>
+    
+    <div>
+        <input type="text" id="boardId" value="board-123" placeholder="Board ID">
+        <button onclick="joinRoom()">1. Join Room</button>
+    </div>
+    <br>
+    <div>
+        <input type="text" id="msgInput" placeholder="Message...">
+        <button onclick="sendMsg()">2. Send Message</button>
+    </div>
+
+    <h3>Logs:</h3>
+    <ul id="logs"></ul>
+
+    <hr>
+    <h3>🕹️ Simulasi Drag & Drop</h3>
+    <div>
+        <input type="text" id="cardId" placeholder="Card UUID (Copy dari DB/Log)">
+        <input type="number" id="newOrder" placeholder="New Order (Float)" value="1500.5">
+        <button onclick="moveCard()">3. Move Card</button>
+    </div>
+    <script>
+        const socket = io('http://localhost:3000'); // Port NestJS kamu
+
+        socket.on('connect', () => log('Connected with ID: ' + socket.id));
+        
+        socket.on('newMessage', (data) => {
+            log(`📩 INCOMING: [${data.user}]: ${data.message}`);
+        });
+
+        function joinRoom() {
+            const boardId = document.getElementById('boardId').value;
+            socket.emit('joinBoard', { boardId });
+            log(`tx: Joining room ${boardId}...`);
+        }
+
+        function sendMsg() {
+            const boardId = document.getElementById('boardId').value;
+            const message = document.getElementById('msgInput').value;
+            socket.emit('sendMessage', { boardId, message });
+        }
+
+        function log(text) {
+            const li = document.createElement('li');
+            li.textContent = text;
+            document.getElementById('logs').appendChild(li);
+        }
+
+        // Tambahkan listener baru: Kalau ada orang lain mindahin kartu
+        socket.on('cardMoved', (data) => {
+            log(`🚀 [LIVE UPDATE] Kartu ${data.cardId} pindah ke Order: ${data.newOrder}`);
+            // Di React nanti: update state cards[] pake data ini
+        });
+
+        function moveCard() {
+            const boardId = document.getElementById('boardId').value;
+            const cardId = document.getElementById('cardId').value;
+            const newOrder = parseFloat(document.getElementById('newOrder').value);
+
+            // Kita pura-pura pindahin ke column-123 dulu
+            const payload = { 
+                boardId, 
+                cardId, 
+                columnId: "2aa3ab81-898c-4fe0-b21a-8e954a966770", 
+                newOrder 
+            };
+
+            socket.emit('moveCard', payload);
+            log(`tx: Moving card ${cardId} to ${newOrder}...`);
+        }
+    </script>
+</body>
+</html>

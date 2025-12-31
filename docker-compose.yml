@@ -1,0 +1,45 @@
+services:
+
+  # 1. NestJS App (Main Application)
+  app:
+    container_name: syncboard_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # PENTING: Di dalam Docker, host DB bukan 'localhost', tapi nama servicenya 'postgres'
+      DATABASE_URL: "postgresql://user:password@postgres:5432/syncboard?schema=public"
+      # Sama juga, host Redis bukan 'localhost', tapi 'valkey'
+      REDIS_URL: "redis://valkey:6379"
+    depends_on:
+      - postgres
+      - valkey
+    restart: unless-stopped
+
+  # 2. Database Utama (Postgres)
+  postgres:
+    image: postgres:15-alpine
+    container_name: syncboard_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: syncboard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 3. Real-time State & Pub/Sub (Valkey)
+  valkey:
+    image: valkey/valkey:7.2
+    container_name: syncboard_valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+
+volumes:
+  postgres_data:
+  valkey_data:
